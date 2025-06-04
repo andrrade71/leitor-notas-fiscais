@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches
+.cache/
+
+# Environment variables
+.env
+.env.*
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Python virtualenv
+venv/
+ENV/
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.swp
+
+# Banco de dados local
+*.sqlite3
+*.db
+
+# Arquivos de upload temporários
+instance/
+uploads/
+
+# Outros
+*.bak
+

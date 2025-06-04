@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de NF-e XML</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Analisador de NF-e (XML)</h1>
+        <p>Envie o arquivo XML da sua Nota Fiscal Eletrônica para extração dos dados.</p>
+        
+        <form method="POST" enctype="multipart/form-data" action="/">
+            <input type="file" name="nota_fiscal_file" accept=".xml" required>
+            <input type="submit" value="Analisar XML da NF-e">
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {# Se houver um erro de parsing específico, exiba-o #}
+        {% if erro_parse %}
+            <div class="error-display">
+                <p>Erro ao processar o XML: {{ erro_parse }}</p>
+            </div>
+        {% endif %}
+
+        {# Exibe os dados se o parsing foi bem-sucedido #}
+        {% if dados_nota %}
+            <div class="data-display-section">
+                <h2>Dados da Nota Fiscal</h2>
+                <div class="data-box">
+                    <div class="data-field">
+                        <span class="data-label">Fornecedor:</span>
+                        <span class="data-value">{{ dados_nota.fornecedor_nome | default('N/A') }}</span>
+                        <button class="copy-btn" data-copy-text="{{ (dados_nota.fornecedor_nome | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar nome do fornecedor">Copiar</button>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Data Emissão:</span>
+                        <span class="data-value">{{ dados_nota.data_emissao | default('N/A') }}</span>
+                        <button class="copy-btn" data-copy-text="{{ (dados_nota.data_emissao | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar data de emissão">Copiar</button>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Valor Total:</span>
+                        <span class="data-value">R$ {{ dados_nota.valor_total | default('N/A') }}</span>
+                        <button class="copy-btn" data-copy-text="{{ (dados_nota.valor_total | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar valor total">Copiar</button>
+                    </div>
+                </div>
+
+                {% if dados_nota.itens and dados_nota.itens|length > 0 %}
+                    <div class="items-section data-box">
+                        <h3>Itens da Nota:</h3>
+                        {% for item in dados_nota.itens %}
+                        <div class="item-box">
+                            <h4>Item {{ loop.index }}</h4>
+                            <div class="data-field">
+                                <div><span class="data-label">Código:</span> <span class="data-value">{{ item.codigo_produto | default('N/A') }}</span></div>
+                                <button class="copy-btn" data-copy-text="{{ (item.codigo_produto | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar código do produto">Copiar</button>
+                            </div>
+                            <div class="data-field">
+                                <div><span class="data-label">Descrição:</span> <span class="data-value">{{ item.descricao | default('N/A') }}</span></div>
+                                <button class="copy-btn" data-copy-text="{{ (item.descricao | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar descrição do produto">Copiar</button>
+                            </div>
+                            <div class="data-field">
+                                <div><span class="data-label">Qtd:</span> <span class="data-value">{{ item.quantidade | default('N/A') }}</span></div>
+                                <button class="copy-btn" data-copy-text="{{ (item.quantidade | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar quantidade do produto">Copiar</button>
+                            </div>
+                            <div class="data-field">
+                                <div><span class="data-label">Un:</span> <span class="data-value">{{ item.unidade | default('N/A') }}</span></div>
+                                <button class="copy-btn" data-copy-text="{{ (item.unidade | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar unidade do produto">Copiar</button>
+                            </div>
+                            <div class="data-field">
+                                <div><span class="data-label">Vl. Unit:</span> <span class="data-value">R$ {{ item.valor_unitario | default('N/A') }}</span></div>
+                                <button class="copy-btn" data-copy-text="{{ (item.valor_unitario | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar valor unitário do produto">Copiar</button>
+                            </div>
+                            <div class="data-field">
+                                <div><span class="data-label">Vl. Total Item:</span> <span class="data-value">R$ {{ item.valor_total_item | default('N/A') }}</span></div>
+                                <button class="copy-btn" data-copy-text="{{ (item.valor_total_item | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar valor total do item">Copiar</button>
+                            </div>
+                            <div style="text-align: right; margin-top: 10px;">
+                                 <button class="copy-btn" type="button" onclick="copyItemDetailsByIndex({{ loop.index0 }}, this);" aria-label="Copiar todos os dados do item">Copiar Item Completo</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% elif dados_nota.get("success") == True %} {# Se sucesso mas sem itens #}
+                    <p>Nenhum item encontrado na nota fiscal.</p>
+                {% endif %}
+
+                {% if dados_nota.fatura or (dados_nota.duplicatas and dados_nota.duplicatas|length > 0) %}
+                <div class="data-box fatura-box">
+                    <h3>Fatura e Parcelas</h3>
+                    {% if dados_nota.fatura %}
+                        <div class="data-field">
+                            <span class="data-label">Nº Fatura:</span>
+                            <span class="data-value">{{ dados_nota.fatura.numero or 'N/A' }}</span>
+                            <button class="copy-btn" data-copy-text="{{ (dados_nota.fatura.numero or '') | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar número da fatura">Copiar</button>
+                        </div>
+                        <div class="data-field">
+                            <span class="data-label">Valor Original:</span>
+                            <span class="data-value">R$ {{ '%.2f'|format(dados_nota.fatura.valor_original) }}</span>
+                            <button class="copy-btn" data-copy-text="{{ ('%.2f'|format(dados_nota.fatura.valor_original)) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar valor original da fatura">Copiar</button>
+                        </div>
+                        <div class="data-field">
+                            <span class="data-label">Desconto:</span>
+                            <span class="data-value">R$ {{ '%.2f'|format(dados_nota.fatura.valor_desconto) }}</span>
+                            <button class="copy-btn" data-copy-text="{{ ('%.2f'|format(dados_nota.fatura.valor_desconto)) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar desconto da fatura">Copiar</button>
+                        </div>
+                        <div class="data-field">
+                            <span class="data-label">Valor Líquido:</span>
+                            <span class="data-value">R$ {{ '%.2f'|format(dados_nota.fatura.valor_liquido) }}</span>
+                            <button class="copy-btn" data-copy-text="{{ ('%.2f'|format(dados_nota.fatura.valor_liquido)) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar valor líquido da fatura">Copiar</button>
+                        </div>
+                    {% endif %}
+                    {% if dados_nota.duplicatas and dados_nota.duplicatas|length > 0 %}
+                        <div class="data-field" style="flex-direction:column;align-items:flex-start;">
+                            <span class="data-label" style="margin-bottom:5px;">Parcelas:</span>
+                            <ul class="parcelas-list">
+                                {% for dup in dados_nota.duplicatas %}
+                                <li class="parcela-item">
+                                    <span><strong>{{ dup.numero }}</strong> - Vencimento: <span class="parcela-venc">{{ dup.vencimento }}</span> - Valor: <span class="parcela-valor">R$ {{ '%.2f'|format(dup.valor) }}</span></span>
+                                    <button class="copy-btn copy-btn-parcela" data-copy-text="{{ (dup.numero ~ ' - ' ~ dup.vencimento ~ ' - R$ ' ~ ('%.2f'|format(dup.valor))) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar dados da parcela">Copiar</button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="invoiceItemsDataContainer" 
+         data-items='{{ (dados_nota.itens if dados_nota and dados_nota.itens else []) | tojson | safe }}' 
+         style="display:none;"></div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
