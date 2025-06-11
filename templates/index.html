@@ -51,11 +51,17 @@
                         <span class="data-value">R$ {{ dados_nota.valor_total | default('N/A') }}</span>
                         <button class="copy-btn" data-copy-text="{{ (dados_nota.valor_total | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar valor total">Copiar</button>
                     </div>
+                    <div class="data-field">
+                        <span class="data-label">Número NF:</span>
+                        <span class="data-value">{{ dados_nota.numero_nota | default('N/A') }}</span>
+                        <button class="copy-btn" data-copy-text="{{ (dados_nota.numero_nota | default('')) | tojson | safe }}" onclick="copyDataAttribute(this)" aria-label="Copiar número da nota">Copiar</button>
+                    </div>
                 </div>
 
                 {% if dados_nota.itens and dados_nota.itens|length > 0 %}
                     <div class="items-section data-box">
                         <h3>Itens da Nota:</h3>
+                        <button class="copy-btn" type="button" style="margin-bottom:15px;" onclick="copyAllItemsFormatted(this)">Copiar Todos os Itens</button>
                         {% for item in dados_nota.itens %}
                         <div class="item-box">
                             <h4>Item {{ loop.index }}</h4>

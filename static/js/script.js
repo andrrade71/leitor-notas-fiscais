@@ -174,6 +174,21 @@ function copyItemDetailsByIndex(itemIndex, buttonElement) {
     }
 }
 
+function copyAllItemsFormatted(buttonElement) {
+    if (!Array.isArray(allInvoiceItems) || allInvoiceItems.length === 0) {
+        copyToClipboard('', buttonElement);
+        return;
+    }
+    const lines = allInvoiceItems.map(item => {
+        const quantidade = formatQuantity(item.quantidade);
+        const descricao = item.descricao ?? 'N/A';
+        const valor = formatMoney(item.valor_total_item);
+        return `${quantidade} ${descricao} (${valor})`;
+    });
+    const textToCopy = lines.join('\n');
+    copyToClipboard(textToCopy, buttonElement);
+}
+
 window.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.copy-btn').forEach(btn => {
         if (!btn.hasAttribute('aria-label')) {

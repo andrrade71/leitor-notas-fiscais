@@ -45,7 +45,7 @@ def parse_nfe_xml(xml_string):
         else:
             dados_nota['fornecedor_nome'] = None
 
-        # Data de Emissão
+        # Data de Emissão e Número da Nota Fiscal (nNF)
         ide_node = infNFe.find('ns:ide', namespaces)
         if ide_node is not None:
             dhEmi = ide_node.findtext('ns:dhEmi', None, namespaces)
@@ -53,8 +53,15 @@ def parse_nfe_xml(xml_string):
                 dados_nota['data_emissao'] = dhEmi.split('T')[0]
             else:
                 dados_nota['data_emissao'] = None
+            # Busca o número da nota fiscal (nNF)
+            nNF = ide_node.findtext('ns:nNF', None, namespaces)
+            if nNF and nNF.strip() != '':
+                dados_nota['numero_nota'] = nNF.strip()
+            else:
+                dados_nota['numero_nota'] = None
         else:
             dados_nota['data_emissao'] = None
+            dados_nota['numero_nota'] = None
             
 
         # Valor Total da Nota
